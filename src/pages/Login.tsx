@@ -4,6 +4,7 @@ import { Logo } from "@/components/fx/Aviao";
 import { BackgroundFX } from "@/components/fx/BackgroundFX";
 import { Botao, Campo, estiloCampo } from "@/components/ui/base";
 import { useAuth } from "@/state/Auth";
+import { ERRO_DO_LINK } from "@/lib/supabase";
 
 type Modo = "entrar" | "link" | "enviado";
 
@@ -13,7 +14,7 @@ export default function Login({ erroConfig, definirSenha, semAcesso }: { erroCon
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [senha2, setSenha2] = useState("");
-  const [erro, setErro] = useState<string | null>(null);
+  const [erro, setErro] = useState<string | null>(ERRO_DO_LINK);
   const [ocupado, setOcupado] = useState(false);
 
   async function enviar(e: React.FormEvent) {

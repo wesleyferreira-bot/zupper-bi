@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { MOCK, supabase } from "@/lib/supabase";
+import { CHEGOU_POR_LINK_DE_SENHA, MOCK, supabase } from "@/lib/supabase";
 
 export interface Membro { user_id: string; email: string; nome: string | null; papel: "admin" | "viewer"; ativo: boolean }
 
@@ -25,7 +25,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [carregando, setCarregando] = useState(!MOCK);
   const [session, setSession] = useState<Session | null>(null);
   const [membro, setMembro] = useState<Membro | null>(MOCK ? MEMBRO_MOCK : null);
-  const [definindoSenha, setDefinindoSenha] = useState(false);
+  const [definindoSenha, setDefinindoSenha] = useState(CHEGOU_POR_LINK_DE_SENHA);
 
   const buscarMembro = useCallback(async (s: Session | null) => {
     if (!s) { setMembro(null); return; }
