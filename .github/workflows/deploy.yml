@@ -1,0 +1,83 @@
+name: Deploy Zupper BI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'public/**'
+      - 'index.html'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'vite.config.ts'
+      - 'tailwind.config.ts'
+      - 'postcss.config.js'
+      - 'deploy/**'
+      - '.github/workflows/deploy.yml'
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy-zupper-bi
+  cancel-in-progress: false
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Instalar dependencias
+        run: npm install --no-audit --no-fund
+
+      # URL e chave publicavel do Supabase sao publicas por desenho (o RLS protege os dados).
+      - name: Build (Vite)
+        env:
+          VITE_SUPABASE_URL: https://liammjyyxyzjlkipaare.supabase.co
+          VITE_SUPABASE_ANON_KEY: sb_publishable_86obapQO_CkbxjMbfGYZZw_PLPHeNPh
+        run: npm run build
+
+      - name: Sanidade - dist gerado e sem segredos
+        run: |
+          test -f dist/index.html || { echo "ERRO: dist/index.html nao existe"; exit 1; }
+          if grep -rEq "service_role|OPENAI_API_KEY|GOOGLE_SERVICE_ACCOUNT" dist/; then
+            echo "ERRO: segredo encontrado no bundle. Abortando."; exit 1
+          fi
+          echo "OK - $(find dist -type f | wc -l) arquivos"
+
+      - name: Preparar chave SSH
+        env:
+          VPS_KEY: ${{ secrets.VPS_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$VPS_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+
+      - name: Enviar para staging no VPS
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_PORT: ${{ secrets.VPS_PORT }}
+        run: |
+          OPTS="-i $HOME/.ssh/id_deploy -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o BatchMode=yes -o ConnectTimeout=30 -o ServerAliveInterval=15"
+          REMOTE='set -e; rm -rf /var/www/zupper-bi-staging; mkdir -p /var/www/zupper-bi-staging; tar -xzf - -C /var/www/zupper-bi-staging; echo "recebido: $(find /var/www/zupper-bi-staging -type f | wc -l) arquivos"'
+          ok=0
+          for i in 1 2 3; do
+            echo "--- tentativa $i ---"
+            if tar -czf - -C dist . | ssh $OPTS -p "$VPS_PORT" "$VPS_USER@$VPS_HOST" "$REMOTE"; then ok=1; break; fi
+            echo "tentativa $i falhou. nova tentativa em 60s (janela do rate limit do ufw)..."
+            sleep 60
+          done
+          [ "$ok" = "1" ] || { echo "ERRO: envio ao VPS falhou 3 vezes."; exit 1; }
+
+      - name: Publicar (staging -> live) e recarregar nginx
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_PORT: ${{ secrets.VPS_PORT }}
+        run: |
+          ssh -i "$HOME/.ssh/id_deploy" -p "$VPS_PORT" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o BatchMode=yes -o ConnectTimeout=30 -o ServerAliveInterval=15 \
+            "$VPS_USER@$VPS_HOST" 'bash -s' < deploy/publish.sh
