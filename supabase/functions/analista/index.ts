@@ -89,6 +89,8 @@ async function chamarOpenAI(chave: string, corpo: Record<string, unknown>) {
       if (r.ok) return { json: await r.json(), modelo };
       const t = await r.text();
       ultimoErro = `${modelo}: ${r.status} ${t.slice(0, 300)}`;
+      // conta da OpenAI sem saldo: nao adianta tentar outro modelo nem repetir
+      if (/insufficient_quota|credit_balance|billing_hard_limit/i.test(t)) throw new Error("SEM_CREDITO");
       if (r.status === 400 && /reasoning_effort/i.test(t) && "reasoning_effort" in base) { delete base.reasoning_effort; continue; }
       if (r.status === 429 || r.status >= 500) { await new Promise((x) => setTimeout(x, 800)); continue; }
       break; // 404/400 de modelo: tenta o proximo
@@ -175,6 +177,10 @@ Deno.serve(async (req) => {
     await db.from("bi_conversas").update({ atualizado_em: new Date().toISOString() }).eq("id", conversaId);
     return json({ conversa_id: conversaId, resposta, consultas: consultas.length });
   } catch (e) {
-    return json({ erro: e instanceof Error ? e.message : String(e) }, 500);
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("[analista]", msg);
+    if (msg === "SEM_CREDITO") return json({ erro: "O Zuppy está temporariamente indisponível: a conta de IA da Metrix está sem saldo. A Metrix já foi avisada e normaliza em breve." }, 503);
+    if (msg.startsWith("Falha ao falar com o modelo de IA")) return json({ erro: "O modelo de IA não respondeu agora. Tente de novo em instantes." }, 502);
+    return json({ erro: msg }, 500);
   }
 });

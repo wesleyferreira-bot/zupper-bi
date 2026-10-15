@@ -300,9 +300,11 @@ Deno.serve(async (req) => {
     return json({ error: "action desconhecida" }, 400);
   } catch (e) {
     console.error("[bi-sync]", e);
-    await admin.rpc("bi_status_gravar", {
-      p_chave: "ultima_falha", p_valor: { em: new Date().toISOString(), action, erro: String(e).slice(0, 400) },
-    }).catch(() => {});
+    try {
+      await admin.rpc("bi_status_gravar", {
+        p_chave: "ultima_falha", p_valor: { em: new Date().toISOString(), action, erro: String(e).slice(0, 400) },
+      });
+    } catch (_) { /* registrar a falha nunca pode esconder a falha original */ }
     return json({ ok: false, error: String(e).slice(0, 400) }, 500);
   }
 });
