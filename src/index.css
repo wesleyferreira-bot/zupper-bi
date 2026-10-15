@@ -1,0 +1,63 @@
+@import "@fontsource-variable/plus-jakarta-sans";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg0: #030d13;
+  --bg1: #06171f;
+  --glass: rgba(9, 34, 46, 0.52);
+  --glass-strong: rgba(8, 28, 39, 0.78);
+  --line: rgba(111, 227, 247, 0.16);
+  --line-strong: rgba(111, 227, 247, 0.34);
+  --text: #e8f7fa;
+  --muted: #8db3bd;
+  color-scheme: dark;
+}
+
+html, body, #root { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg0);
+  color: var(--text);
+  font-family: "Plus Jakarta Sans Variable", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+* { scrollbar-width: thin; scrollbar-color: rgba(111,227,247,.25) transparent; }
+::selection { background: rgba(111, 227, 247, .35); }
+
+/* Cartao holografico: vidro, borda fina e cantos de mira */
+.holo {
+  position: relative;
+  background: linear-gradient(160deg, rgba(14, 52, 68, .55), rgba(6, 24, 33, .55));
+  backdrop-filter: blur(14px) saturate(1.2);
+  -webkit-backdrop-filter: blur(14px) saturate(1.2);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: 0 0 0 1px rgba(111,227,247,.05), 0 24px 70px -30px rgba(69,155,172,.6), inset 0 1px 0 rgba(255,255,255,.07);
+}
+.holo::before, .holo::after {
+  content: ""; position: absolute; width: 14px; height: 14px; pointer-events: none;
+  border-color: rgba(111, 227, 247, .65); border-style: solid; opacity: .9;
+}
+.holo::before { top: 8px; left: 8px; border-width: 1.5px 0 0 1.5px; border-top-left-radius: 6px; }
+.holo::after { bottom: 8px; right: 8px; border-width: 0 1.5px 1.5px 0; border-bottom-right-radius: 6px; }
+.holo-hover { transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease; }
+.holo-hover:hover { transform: translateY(-3px); border-color: var(--line-strong); box-shadow: 0 0 0 1px rgba(111,227,247,.18), 0 30px 80px -26px rgba(111,227,247,.45), inset 0 1px 0 rgba(255,255,255,.1); }
+
+.num { font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.text-glow { text-shadow: 0 0 22px rgba(111, 227, 247, .45); }
+.grad-text { background: linear-gradient(180deg, #fff 10%, #9ee9f7 60%, #459bac); -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+.skel { position: relative; overflow: hidden; background: rgba(111,227,247,.07); border-radius: 10px; }
+.skel::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(111,227,247,.14), transparent); transform: translateX(-100%); animation: shimmer 1.6s infinite; }
+
+.recharts-text { fill: #8db3bd; font-size: 11px; }
+.recharts-cartesian-grid line { stroke: rgba(111,227,247,.09); }
+.recharts-tooltip-cursor { fill: rgba(111,227,247,.06); }
+
+input, select, textarea { color-scheme: dark; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; } }
+
+@keyframes voar { from { offset-distance: 0%; } to { offset-distance: 100%; } }
